@@ -38,7 +38,7 @@ class TunnelFormScreen(ModalScreen[Tunnel | None]):
                 yield Label("SSH Host")
                 yield Select(host_options, id="host-select", value=self._editing.ssh_host if self._editing and self._editing.ssh_host in [h for h, _ in host_options[:-1]] else "__manual__")
 
-                yield Label("SSH Host (manual)")
+                yield Label("SSH Host (manual)", id="label-host-manual")
                 yield Input(
                     placeholder="user@hostname or ssh-config-host",
                     id="host-manual",
@@ -86,11 +86,21 @@ class TunnelFormScreen(ModalScreen[Tunnel | None]):
                 yield Button("Save", variant="primary", id="btn-save")
                 yield Button("Cancel", variant="default", id="btn-cancel")
 
+    def on_mount(self) -> None:
+        self._update_manual_host_visibility()
+
     def on_select_changed(self, event: Select.Changed) -> None:
         if event.select.id == "host-select":
             manual_input = self.query_one("#host-manual", Input)
             if event.value != "__manual__" and event.value is not Select.BLANK:
                 manual_input.value = str(event.value)
+            self._update_manual_host_visibility()
+
+    def _update_manual_host_visibility(self) -> None:
+        host_select = self.query_one("#host-select", Select)
+        is_manual = host_select.value == "__manual__" or host_select.value is Select.BLANK
+        self.query_one("#label-host-manual", Label).display = is_manual
+        self.query_one("#host-manual", Input).display = is_manual
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "btn-cancel":
@@ -118,6 +128,13 @@ class TunnelFormScreen(ModalScreen[Tunnel | None]):
         else:
             error_label.update("[b red]SSH host is required[/]")
             return
+
+        if not local_port_str and remote_port_str and remote_port_str.isdigit():
+            local_port_str = remote_port_str
+            self.query_one("#local-port", Input).value = local_port_str
+        if not remote_port_str and local_port_str and local_port_str.isdigit():
+            remote_port_str = local_port_str
+            self.query_one("#remote-port", Input).value = remote_port_str
 
         if not local_port_str or not local_port_str.isdigit():
             error_label.update("[b red]Local port must be a number[/]")

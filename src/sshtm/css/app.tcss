@@ -123,3 +123,58 @@ HelpScreen {
     content-align: center middle;
     margin-bottom: 1;
 }
+
+ErrorDetailScreen {
+    align: center middle;
+}
+
+#info-container {
+    width: 65;
+    height: auto;
+    max-height: 80%;
+    background: $surface;
+    border: thick $primary;
+    padding: 1 2;
+}
+
+#info-title {
+    text-style: bold;
+    content-align: center middle;
+    margin-bottom: 1;
+}
+
+#info-container Button {
+    margin-top: 1;
+    width: 100%;
+}
+
+LogViewScreen {
+    align: center middle;
+}
+
+#log-container {
+    width: 80;
+    height: 24;
+    background: $surface;
+    border: thick $accent;
+    padding: 1 2;
+}
+
+#log-title {
+    text-style: bold;
+    content-align: center middle;
+    margin-bottom: 1;
+}
+
+#log-scroll {
+    height: 1fr;
+}
+
+#log-content {
+    width: 100%;
+}
+
+#log-container Button {
+    margin-top: 1;
+    width: 100%;
+}

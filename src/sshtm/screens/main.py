@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from textual.app import ComposeResult
-from textual.containers import Horizontal, Vertical
+from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import ModalScreen
 from textual.widgets import Button, Static
 
@@ -71,7 +71,8 @@ class MainScreen(Vertical):
         bar = self.query_one("#status-bar", Static)
         bar.update(
             f" {count} tunnel(s) │ "
-            "[b]n[/b]ew  [b]s[/b]tart/stop  [b]e[/b]dit  [b]d[/b]elete  [b]r[/b]efresh  [b]?[/b]help  [b]q[/b]uit"
+            "[b]n[/b]ew  [b]s[/b]tart/stop  [b]e[/b]dit  [b]d[/b]elete  "
+            "[b]i[/b]nfo  [b]l[/b]og  [b]r[/b]efresh  [b]?[/b]help  [b]q[/b]uit"
         )
 
 
@@ -97,3 +98,65 @@ class ConfirmDialog(ModalScreen[bool]):
 
     def action_cancel_dialog(self) -> None:
         self.dismiss(False)
+
+
+class ErrorDetailScreen(ModalScreen[None]):
+    BINDINGS = [
+        ("escape", "dismiss_screen", "Close"),
+    ]
+
+    def __init__(self, tunnel: Tunnel) -> None:
+        super().__init__()
+        self._tunnel = tunnel
+
+    def compose(self) -> ComposeResult:
+        t = self._tunnel
+        status_line = f"[b]Status:[/b] {t.status.value}"
+        direction = "Local \u2192 Remote (-L)" if t.direction.value == "local" else "Remote \u2192 Local (-R)"
+        details = (
+            f"[b]Label:[/b]       {t.display_label()}\n"
+            f"[b]SSH Host:[/b]    {t.ssh_host}\n"
+            f"[b]Direction:[/b]   {direction}\n"
+            f"[b]Local Port:[/b]  {t.local_port}\n"
+            f"[b]Remote:[/b]      {t.remote_host}:{t.remote_port}\n"
+            f"\n{status_line}"
+        )
+        if t.error_message:
+            details += f"\n\n[b red]Error:[/b red] {t.error_message}"
+
+        with Vertical(id="info-container"):
+            yield Static("Tunnel Info", id="info-title")
+            yield Static(details)
+            yield Button("Close", variant="primary", id="info-close")
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "info-close":
+            self.dismiss()
+
+    def action_dismiss_screen(self) -> None:
+        self.dismiss()
+
+
+class LogViewScreen(ModalScreen[None]):
+    BINDINGS = [
+        ("escape", "dismiss_screen", "Close"),
+    ]
+
+    def __init__(self, ssh_host: str, log_text: str) -> None:
+        super().__init__()
+        self._ssh_host = ssh_host
+        self._log_text = log_text
+
+    def compose(self) -> ComposeResult:
+        with Vertical(id="log-container"):
+            yield Static(f"SSH Log: {self._ssh_host}", id="log-title")
+            with VerticalScroll(id="log-scroll"):
+                yield Static(self._log_text, id="log-content")
+            yield Button("Close", variant="primary", id="log-close")
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "log-close":
+            self.dismiss()
+
+    def action_dismiss_screen(self) -> None:
+        self.dismiss()

@@ -22,6 +22,8 @@ class SSHTMApp(App[None]):
         ("e", "edit_tunnel", "Edit"),
         ("s", "toggle_tunnel", "Start/Stop"),
         ("r", "refresh", "Refresh"),
+        ("i", "show_tunnel_info", "Info"),
+        ("l", "show_tunnel_log", "Log"),
         ("question_mark", "show_help", "Help"),
         ("q", "quit", "Quit"),
     ]
@@ -237,6 +239,35 @@ class SSHTMApp(App[None]):
     def action_show_help(self) -> None:
         from sshtm.screens.help import HelpScreen
         self.push_screen(HelpScreen())
+
+    def action_show_tunnel_info(self) -> None:
+        tunnel = self._get_selected_tunnel()
+        if tunnel is None:
+            self.notify("No tunnel selected", severity="warning")
+            return
+        from sshtm.screens.main import ErrorDetailScreen
+        self.push_screen(ErrorDetailScreen(tunnel))
+
+    def action_show_tunnel_log(self) -> None:
+        tunnel = self._get_selected_tunnel()
+        if tunnel is None:
+            self.notify("No tunnel selected", severity="warning")
+            return
+        from sshtm.config.paths import log_path_for
+        log_file = log_path_for(tunnel.ssh_host)
+        if not log_file.exists():
+            self.notify("No SSH log available for this host", severity="warning")
+            return
+        try:
+            log_text = log_file.read_text(errors="replace").strip()
+        except OSError:
+            self.notify("Could not read SSH log", severity="error")
+            return
+        if not log_text:
+            self.notify("SSH log is empty", severity="warning")
+            return
+        from sshtm.screens.main import LogViewScreen
+        self.push_screen(LogViewScreen(tunnel.ssh_host, log_text))
 
     def _get_selected_tunnel(self) -> Tunnel | None:
         try:

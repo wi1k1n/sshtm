@@ -13,24 +13,33 @@ HELP_TEXT = """\
 [b]s[/b]       Start/stop selected tunnel
 [b]e[/b]       Edit selected tunnel
 [b]d[/b]       Delete selected tunnel
+[b]i[/b]       Show tunnel info & errors
+[b]l[/b]       View SSH log for tunnel
 [b]r[/b]       Refresh tunnel states
 [b]?[/b]       Show this help
 [b]q[/b]       Quit sshtm
 
 [b]Navigation[/b]
 
-↑/↓     Move selection
+\u2191/\u2193     Move selection
 Enter   Start/stop selected tunnel
 
 [b]Tunnel Directions[/b]
 
-L→R     Local forward (-L): binds a local port,
+L\u2192R     Local forward (-L): binds a local port,
         forwards traffic to remote host:port
         through the SSH connection.
 
-R→L     Remote forward (-R): binds a port on the
+R\u2192L     Remote forward (-R): binds a port on the
         remote server, forwards traffic back to
         your local host:port.
+
+[b]Troubleshooting[/b]
+
+If a tunnel shows [red]\u2716[/red] error status:
+\u2022 Press [b]i[/b] to view error details
+\u2022 Press [b]l[/b] to read the SSH log
+\u2022 Press [b]s[/b] to retry starting it
 
 [b]Persistence[/b]
 

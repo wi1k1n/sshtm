@@ -2,12 +2,54 @@ from __future__ import annotations
 
 import subprocess
 import time
-from pathlib import Path
 
-from sshtm.config.paths import log_path_for, socket_path_for, pid_path_for
+from sshtm.config.paths import log_path_for, socket_path_for
 from sshtm.core.health import check_master_alive, is_port_available, is_port_reachable
 from sshtm.core.process import ProcessTracker
 from sshtm.core.tunnel import Direction, Tunnel, TunnelStatus
+
+_SSH_ERROR_HINTS: list[tuple[str, str]] = [
+    ("Connection refused", "Host is unreachable or SSH is not running on the remote."),
+    ("Connection timed out", "Host is unreachable. Check network/firewall."),
+    ("Could not resolve hostname", "Hostname not found. Check spelling or DNS."),
+    ("Permission denied", "Authentication failed. Check SSH key or credentials."),
+    ("Host key verification failed", "Remote host key changed. Check ~/.ssh/known_hosts."),
+    ("No route to host", "Network path unavailable. Check connectivity."),
+    ("Address already in use", "Port is already bound by another process."),
+    ("Connection reset by peer", "Remote side closed the connection unexpectedly."),
+    ("Network is unreachable", "No network route. Check your connection."),
+    ("Operation timed out", "SSH operation took too long. Host may be slow or unreachable."),
+    ("Bad local forwarding specification", "Invalid port forwarding spec. Check ports."),
+    ("remote port forwarding failed", "Remote could not bind the requested port."),
+    ("administratively prohibited", "Server config forbids this forwarding type."),
+]
+
+
+def _read_ssh_log_tail(ssh_host: str, max_lines: int = 30) -> str:
+    log_file = log_path_for(ssh_host)
+    if not log_file.exists():
+        return ""
+    try:
+        text = log_file.read_text(errors="replace")
+        lines = text.strip().splitlines()
+        return "\n".join(lines[-max_lines:])
+    except OSError:
+        return ""
+
+
+def _enrich_error(base_msg: str, ssh_host: str, stderr: str = "") -> str:
+    combined = f"{base_msg} {stderr} {_read_ssh_log_tail(ssh_host)}"
+    hints: list[str] = []
+    combined_lower = combined.lower()
+    for pattern, hint in _SSH_ERROR_HINTS:
+        if pattern.lower() in combined_lower:
+            hints.append(hint)
+    parts = [base_msg.strip()]
+    if stderr.strip():
+        parts.append(f"SSH: {stderr.strip()}")
+    if hints:
+        parts.append(f"Hint: {hints[0]}")
+    return " | ".join(parts)
 
 
 class TunnelManager:
@@ -18,9 +60,9 @@ class TunnelManager:
         if tunnel.direction == Direction.LOCAL and not is_port_available(tunnel.local_port):
             return False, f"Local port {tunnel.local_port} is already in use"
 
-        master_ok = self._ensure_master(tunnel.ssh_host)
-        if not master_ok:
-            return False, f"Failed to establish SSH master to {tunnel.ssh_host}"
+        ok, master_msg = self._ensure_master(tunnel.ssh_host)
+        if not ok:
+            return False, master_msg
 
         success, msg = self._add_forward(tunnel)
         if not success:
@@ -97,11 +139,11 @@ class TunnelManager:
 
         return self._add_forward(tunnel)
 
-    def _ensure_master(self, ssh_host: str) -> bool:
+    def _ensure_master(self, ssh_host: str) -> tuple[bool, str]:
         socket_path = socket_path_for(ssh_host)
 
         if socket_path.exists() and check_master_alive(str(socket_path), ssh_host):
-            return True
+            return True, "Master already running"
 
         self._tracker._cleanup_stale(ssh_host)
         log_path = log_path_for(ssh_host)
@@ -129,20 +171,30 @@ class TunnelManager:
                 timeout=15,
             )
         except subprocess.TimeoutExpired:
-            return False
+            return False, _enrich_error(
+                f"SSH connection to {ssh_host} timed out",
+                ssh_host,
+            )
 
         if result.returncode != 0:
-            return False
+            return False, _enrich_error(
+                f"SSH master to {ssh_host} failed (exit {result.returncode})",
+                ssh_host,
+                result.stderr,
+            )
 
         for _ in range(10):
             time.sleep(0.3)
             if socket_path.exists():
                 break
         else:
-            return False
+            return False, _enrich_error(
+                f"SSH master socket for {ssh_host} never appeared",
+                ssh_host,
+            )
 
         self._write_master_pid(ssh_host)
-        return True
+        return True, "Master started"
 
     def _write_master_pid(self, ssh_host: str) -> None:
         socket_path = socket_path_for(ssh_host)
@@ -185,10 +237,17 @@ class TunnelManager:
                 timeout=10,
             )
             if result.returncode != 0:
-                return False, f"Forward failed: {result.stderr.strip()}"
+                return False, _enrich_error(
+                    "Port forwarding failed",
+                    tunnel.ssh_host,
+                    result.stderr,
+                )
             return True, "Forward added"
         except subprocess.TimeoutExpired:
-            return False, "Forward request timed out"
+            return False, _enrich_error(
+                "Forward request timed out",
+                tunnel.ssh_host,
+            )
 
     def _cancel_forward(self, tunnel: Tunnel) -> tuple[bool, str]:
         socket_path = socket_path_for(tunnel.ssh_host)
@@ -209,7 +268,14 @@ class TunnelManager:
                 timeout=10,
             )
             if result.returncode != 0:
-                return False, f"Cancel failed: {result.stderr.strip()}"
+                return False, _enrich_error(
+                    "Cancel forwarding failed",
+                    tunnel.ssh_host,
+                    result.stderr,
+                )
             return True, "Forward cancelled"
         except subprocess.TimeoutExpired:
-            return False, "Cancel request timed out"
+            return False, _enrich_error(
+                "Cancel request timed out",
+                tunnel.ssh_host,
+            )
