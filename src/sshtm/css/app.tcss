@@ -1,0 +1,125 @@
+Screen {
+    background: $surface;
+}
+
+#tunnel-table {
+    height: 1fr;
+    margin: 1 2;
+}
+
+#status-bar {
+    dock: bottom;
+    height: 1;
+    background: $primary-background;
+    color: $text;
+    padding: 0 2;
+}
+
+#empty-state {
+    width: 100%;
+    height: 100%;
+    content-align: center middle;
+    color: $text-muted;
+}
+
+TunnelFormScreen {
+    align: center middle;
+}
+
+#tunnel-form-container {
+    width: 70;
+    max-height: 80%;
+    background: $surface;
+    border: thick $primary;
+    padding: 1 2;
+}
+
+#tunnel-form-container > Static {
+    width: 100%;
+    content-align: center middle;
+    text-style: bold;
+    margin-bottom: 1;
+}
+
+#tunnel-form-scroll {
+    height: 1fr;
+}
+
+#tunnel-form-scroll Label {
+    margin-top: 1;
+    margin-bottom: 0;
+}
+
+#tunnel-form-scroll Input {
+    margin-bottom: 0;
+}
+
+#tunnel-form-scroll Select {
+    margin-bottom: 0;
+}
+
+#form-buttons {
+    margin-top: 1;
+    height: 3;
+    align: center middle;
+}
+
+#form-buttons Button {
+    margin: 0 1;
+}
+
+#form-error {
+    color: $error;
+    margin: 1 0 0 0;
+    text-style: bold;
+}
+
+ConfirmDialog {
+    align: center middle;
+}
+
+#confirm-container {
+    width: 50;
+    height: auto;
+    background: $surface;
+    border: thick $error;
+    padding: 1 2;
+}
+
+#confirm-container Static {
+    width: 100%;
+    content-align: center middle;
+    margin-bottom: 1;
+}
+
+#confirm-buttons {
+    height: 3;
+    align: center middle;
+}
+
+#confirm-buttons Button {
+    margin: 0 1;
+}
+
+HelpScreen {
+    align: center middle;
+}
+
+#help-container {
+    width: 60;
+    height: auto;
+    max-height: 80%;
+    background: $surface;
+    border: thick $accent;
+    padding: 1 2;
+}
+
+#help-container Static {
+    width: 100%;
+}
+
+#help-title {
+    text-style: bold;
+    content-align: center middle;
+    margin-bottom: 1;
+}
