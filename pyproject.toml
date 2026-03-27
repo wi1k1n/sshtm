@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68.0", "setuptools-scm>=8.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sshtm"
+version = "0.1.0"
+description = "Interactive SSH tunnel manager with a terminal UI"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+dependencies = [
+    "textual>=1.0.0",
+    "sshconf>=0.2.5",
+    "tomli-w>=1.0.0",
+]
+
+[project.scripts]
+sshtm = "sshtm.__main__:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "textual-dev>=1.0.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
