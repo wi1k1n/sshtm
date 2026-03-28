@@ -18,7 +18,7 @@ STATUS_INDICATORS = {
 
 class MainScreen(Vertical):
     def compose(self) -> ComposeResult:
-        table = TunnelTable(id="tunnel-table", cursor_type="row")
+        table = TunnelTable(id="tunnel-table", cursor_type="row", cursor_foreground_priority="renderable")
         yield table
         yield Static("", id="status-bar")
 

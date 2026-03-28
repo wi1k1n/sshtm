@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from textual.binding import Binding
 from textual.widgets import DataTable
 from textual.widgets._data_table import CellType
 
@@ -12,6 +13,11 @@ class TunnelTable(DataTable[CellType]):
     Navigation order (down): row 0 -> row 1 -> ... -> row N-1 -> *unselected* -> row 0
     Navigation order (up):   row 0 -> *unselected* -> row N-1 -> ... -> row 1 -> row 0
     """
+
+    BINDINGS = [
+        Binding("j", "cursor_down", "Down", show=False),
+        Binding("k", "cursor_up", "Up", show=False),
+    ]
 
     _selection_active: bool = True
 
